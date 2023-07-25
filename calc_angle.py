@@ -1,20 +1,85 @@
-# Función para calcular el ángulo de desviación a partir de un rectángulo mínimo
-def calculate_angle(rect):
-    # Obtener el ángulo de rotación del rectángulo (en grados)
-    angle = rect[-1]
+import cv2
+import numpy as np
 
-    # Si el ángulo es menor que -45 grados, ajustarlo para obtener el ángulo positivo equivalente
-    if angle < -45:
-        angle += 90
+def keep_selected_colors(image, color_ranges):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = np.zeros(image.shape[:2], dtype=np.uint8)
 
-    # Calcular el ángulo de desviación respecto al eje horizontal
-    deviation_angle = 90 - abs(angle)
+    for color_range in color_ranges:
+        lower_color = np.array(color_range[0])
+        upper_color = np.array(color_range[1])
+        color_mask = cv2.inRange(hsv, lower_color, upper_color)
+        mask = cv2.bitwise_or(mask, color_mask)
 
-    return deviation_angle
+    image_with_selected_colors = cv2.bitwise_and(image, image, mask=mask)
+    return image_with_selected_colors
 
-# Calcular y mostrar el ángulo de desviación para cada rectángulo mínimo
-for rect in bounding_rectangles:
-    deviation_angle = calculate_angle(rect)
-    print("Ángulo de desviación: {:.2f} grados".format(deviation_angle))
+# Cargar la imagen
+image = cv2.imread('img/Captura de pantalla (164).png')
 
-result = np.hstack((contour_image, rectangle_image))
+# Definir los rangos de color para los colores que deseas conservar
+selected_color_ranges = [
+    [(170, 130, 200), (250, 255, 255)]
+]
+
+# Conservar solo los colores seleccionados en la imagen
+image_with_selected_colors = keep_selected_colors(image, selected_color_ranges)
+
+# Convertir la imagen a escala de grises
+gray_image = cv2.cvtColor(image_with_selected_colors, cv2.COLOR_BGR2GRAY)
+
+# Aplicar el operador de Canny para detectar los bordes
+edges = cv2.Canny(gray_image, threshold1=30, threshold2=100)
+
+# Encontrar los contornos en la imagen binaria
+contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Trazar líneas verticales y horizontales
+for contour in contours:
+    vertical_lines_l = cv2.HoughLinesP(edges, rho=1, theta=np.pi/2, threshold=1, minLineLength=40, maxLineGap=1)
+    if vertical_lines_l is not None:
+        for line in vertical_lines_l:
+            x1, y1, x2, y2 = line[0]
+            # Puntos de inicio y fin en el borde superior e inferior de la imagen
+            cv2.line(image_with_selected_colors, (x1, 0), (x2, image_with_selected_colors.shape[0]), (0, 0, 255), 2)
+
+    vertical_lines_r = cv2.HoughLinesP(edges, rho=1, theta=np.pi/2, threshold=1, minLineLength=30, maxLineGap=1)
+    if vertical_lines_r is not None:
+        for line in vertical_lines_r:
+            x1, y1, x2, y2 = line[0]
+            # Puntos de inicio y fin en el borde superior e inferior de la imagen
+            cv2.line(image_with_selected_colors, (x1, 0), (x2, image_with_selected_colors.shape[1]), (0, 0, 255), 2)
+    
+    horizontal_lines_l = cv2.HoughLinesP(edges, rho=1, theta=np.pi/2, threshold=1, minLineLength=22, maxLineGap=1)
+    if horizontal_lines_l is not None:
+        for line in horizontal_lines_l:
+            x1, y1, x2, y2 = line[0]
+            # Puntos de inicio y fin en el borde superior e inferior de la imagen
+            cv2.line(image_with_selected_colors, (0, y1), (image_with_selected_colors.shape[0], y2), (0, 255, 0), 2)
+
+if horizontal_lines_l is not None and vertical_lines_l is not None:
+    for hl in horizontal_lines_l:
+        for vl in vertical_lines_l:
+            x1_h, y1_h, x2_h, y2_h = hl[0]
+            x1_v, y1_v, x2_v, y2_v = vl[0]
+
+            dx = x2_h - x1_h
+            dy = y2_v - y1_v
+
+            # Calcular el ángulo en radianes
+            angle_radians = np.arctan2(dy, dx)
+
+            # Convertir el ángulo a grados
+            angle_degrees = np.degrees(angle_radians)
+
+            angle_text = f"Angulo: {angle_degrees:.2f} grados"
+            cv2.putText(image_with_selected_colors, angle_text, (x1_h, y1_h), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+
+window_width = 1980
+window_height = 720
+cv2.namedWindow('Resultado', cv2.WINDOW_NORMAL)
+cv2.resizeWindow('Resultado', window_width, window_height)
+cv2.imshow('Resultado', image_with_selected_colors)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
