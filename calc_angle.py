@@ -58,10 +58,10 @@ for contour in contours:
             cv2.putText(image_with_selected_colors, f"{x1}", (x1, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.1, (0, 255, 255), 2)
 
             top_left = (x1, y2)
-            bottom_right = (x1 + 50, y2 + 100)  # Puedes ajustar los valores para el tamaño del rectángulo
+            bottom_right = (x1 + 20, y2 + 10)  # Puedes ajustar los valores para el tamaño del rectángulo
 
             # Dibujar el rectángulo en la imagen
-            cv2.rectangle(image_with_selected_colors, top_left, bottom_right, (0, 0, 255), 2)
+            cv2.rectangle(image_with_selected_colors, top_left, bottom_right, (0, 0, 255), 1)
 
             #cv2.putText(image_with_selected_colors, f"{x1}", (x1, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.1, (0, 255, 255), 2)
             # Puntos de inicio y fin en el borde superior e inferior de la imagen
