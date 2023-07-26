@@ -31,15 +31,30 @@ image_with_selected_colors = keep_selected_colors(image, selected_color_ranges)
 gray_image = cv2.cvtColor(image_with_selected_colors, cv2.COLOR_BGR2GRAY)
 
 # Aplicar el operador de Canny para detectar los bordes
-edges = cv2.Canny(gray_image, threshold1=30, threshold2=100)
+edges = cv2.Canny(gray_image, threshold1=50, threshold2=150)
 
 # Encontrar los contornos en la imagen binaria
 contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-lista_x1 = []
+'''
+start_point = (680, 30)
+end_point = (970, 550)
+color = (0, 0, 255)
+thickness = 3
+image_with_rectangle = cv2.rectangle(
+    img = image_with_selected_colors,
+    pt1 = start_point,
+    pt2 = end_point, 
+    color = color, 
+    thickness = thickness
+)
+'''
 
 # Trazar líneas verticales y horizontales
 for contour in contours:
+    x, y, w, h = cv2.boundingRect(contour)
+    cv2.rectangle(image_with_selected_colors, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
     '''vertical_lines_l = cv2.HoughLinesP(edges, rho=1, theta=np.pi/2, threshold=1, minLineLength=40, maxLineGap=1)
     if vertical_lines_l is not None:
         for line in vertical_lines_l:
@@ -50,18 +65,12 @@ for contour in contours:
             cv2.putText(image_with_selected_colors, f"x2_lvl: {x2}", (x2, x2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             cv2.putText(image_with_selected_colors, f"y1_lvl: {y1}", (y1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             cv2.putText(image_with_selected_colors, f"y2_lvl: {y2}", (y2, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-    '''
+'''
     vertical_lines_r = cv2.HoughLinesP(edges, rho=1, theta=np.pi/2, threshold=1, minLineLength=1, maxLineGap=1)
     if vertical_lines_r is not None:
         for line in vertical_lines_r:
             x1, y1, x2, y2 = line[0]
             cv2.putText(image_with_selected_colors, f"{x1}", (x1, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.1, (0, 255, 255), 2)
-
-            top_left = (x1, y2)
-            bottom_right = (x1 + 20, y2 + 10)  # Puedes ajustar los valores para el tamaño del rectángulo
-
-            # Dibujar el rectángulo en la imagen
-            cv2.rectangle(image_with_selected_colors, top_left, bottom_right, (0, 0, 255), 1)
 
             #cv2.putText(image_with_selected_colors, f"{x1}", (x1, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.1, (0, 255, 255), 2)
             # Puntos de inicio y fin en el borde superior e inferior de la imagen
@@ -71,8 +80,8 @@ for contour in contours:
             #cv2.line(image_with_selected_colors, (x1, y2), (x1, y1), (0, 0, 255), 1)
             #cv2.putText(image_with_selected_colors, f"y1_lvr: {y1}", (y1, x1), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             #cv2.putText(image_with_selected_colors, f"y2_lvr: {y2}", (y2, x2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+'''
 
-    '''
     horizontal_lines_l = cv2.HoughLinesP(edges, rho=1, theta=np.pi/2, threshold=1, minLineLength=22, maxLineGap=1)
     if horizontal_lines_l is not None:
         for line in horizontal_lines_l:
@@ -85,10 +94,7 @@ for contour in contours:
             cv2.putText(image_with_selected_colors, f"y2_lhl: {y2}", (y2, x2), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     '''
 
-lista_x1.sort()
-print(lista_x1)
-
-window_width = 1980
+window_width = 1080
 window_height = 720
 cv2.namedWindow('Resultado', cv2.WINDOW_NORMAL)
 cv2.resizeWindow('Resultado', window_width, window_height)
