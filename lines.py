@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from sklearn.cluster import DBSCAN
 
 def keep_selected_colors(image, color_ranges):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -16,50 +15,37 @@ def keep_selected_colors(image, color_ranges):
     return image_with_selected_colors
 
 # Cargar la imagen
-image = cv2.imread('img/Captura de pantalla (164).png')
+image = cv2.imread('img/Captura de pantalla (161).png')
 
 # Definir los rangos de color para los colores que deseas conservar
 selected_color_ranges = [
-    #[(10, 100, 100), (10, 255, 255)],  # Rojo
     [(170, 130, 200), (250, 255, 255)]
-    #[(25, 100, 100), (35, 255, 255)],  # Amarillo
-    #[(140, 100, 100), (160, 255, 255)],  # Morado
-    # Agrega más rangos de colores aquí si deseas conservar otros colores
 ]
 
 # Conservar solo los colores seleccionados en la imagen
 image_with_selected_colors = keep_selected_colors(image, selected_color_ranges)
 
-# Encontrar los píxeles no cero en la imagen
-non_zero_pixels = cv2.findNonZero(cv2.cvtColor(image_with_selected_colors, cv2.COLOR_BGR2GRAY))
+# Convertir la imagen a escala de grises
+gray_image = cv2.cvtColor(image_with_selected_colors, cv2.COLOR_BGR2GRAY)
 
-# Verificar si se encontraron píxeles no cero
-if non_zero_pixels is not None:
-    # Obtener solo las coordenadas x, y de los píxeles no cero
-    coordinates = [coord[0] for coord in non_zero_pixels]
+# Aplicar un umbral a la imagen para convertirla en blanco y negro
+_, binary_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY)
 
-    # Agrupar las coordenadas cercanas usando DBSCAN
-    eps = 1  # Valor para determinar la cercanía de las coordenadas
-    db = DBSCAN(eps=eps, min_samples=1).fit(coordinates)
-    labels = db.labels_
-    unique_labels = np.unique(labels)
+# Encontrar los contornos de la imagen binaria
+contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Función para obtener las coordenadas de las esquinas de una agrupación
-    def get_corners(coords):
-        x_coords = [coord[0] for coord in coords]
-        y_coords = [coord[1] for coord in coords]
-        return (min(x_coords), min(y_coords)), (max(x_coords), max(y_coords))
+# Dibujar los contornos en la imagen original
+#cv2.drawContours(image_with_selected_colors, contours, -1, (0, 255, 0), 3)
 
-    # Trazar líneas para las esquinas de cada agrupación
-    for label in unique_labels:
-        if label == -1:
-            continue  # Ignorar puntos ruido (sin agrupación)
-        coords_group = [coordinates[i] for i, db_label in enumerate(labels) if db_label == label]
-        corner1, corner2 = get_corners(coords_group)
-        cv2.rectangle(image_with_selected_colors, corner1, corner2, (0, 255, 0), 1)
-        #cv2.line(image_with_selected_colors, corner1, corner2, (0, 255, 0), 1)
-else:
-    print("No se encontraron píxeles no cero en la imagen.")
+# Utilizar la transformada de Hough probabilística para detectar líneas horizontales
+lines = cv2.HoughLinesP(binary_image, 1, np.pi/180, threshold=70, minLineLength=1, maxLineGap=10)
+
+if lines is not None:
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        # Filtrar líneas horizontales (pequeña diferencia en el eje Y, diferencia significativa en el eje X)
+        if np.abs(y2 - y1) < 10 and np.abs(x2 - x1) > 10:
+            cv2.line(image_with_selected_colors, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
 window_width = 1980
 window_height = 720
