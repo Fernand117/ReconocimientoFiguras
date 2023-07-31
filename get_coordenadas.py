@@ -26,31 +26,51 @@ def detect_circles(image):
 
     if circles is not None:
         circles = np.uint16(np.around(circles))
-        
-        # Inicializar variables para el círculo más grande encontrado
-        largest_circle = None
-        largest_radius = 0
+
+        # Inicializar una lista para almacenar los círculos encontrados
+        all_circles = []
 
         for circle in circles[0, :]:
             center_x, center_y, radius = circle
-            
-            # Si el radio del círculo actual es más grande que el radio del círculo más grande encontrado hasta ahora
-            if radius > largest_radius:
-                largest_radius = radius
-                largest_circle = circle
 
             # Dibujar el círculo encontrado en la copia de la imagen original
             cv2.circle(image, (center_x, center_y), radius, (0, 255, 0), 2)
 
-        if largest_circle is not None:
-            center_x, center_y, radius = largest_circle
+            # Agregar el círculo a la lista de todos los círculos
+            all_circles.append(circle)
+
+        # Ordenar la lista de todos los círculos por radio (de mayor a menor)
+        all_circles.sort(key=lambda c: c[2], reverse=True)
+
+        if all_circles:
             # Dibujar el círculo más grande encontrado con un color diferente (por ejemplo, rojo)
+            largest_circle = all_circles[0]
+            center_x, center_y, radius = largest_circle
             cv2.circle(image, (center_x, center_y), radius, (0, 0, 255), 2)
+
+            # Buscar puntos horizontales más cercanos sobre la parte superior del círculo
+            _, binary_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY_INV)
+            contour_points = np.column_stack(np.where(binary_image > 0))
+
+            # Calcular la distancia máxima permitida para considerar un punto cercano al círculo
+            max_distance = int(radius * 0.8)
+
+            # Encontrar los puntos cercanos al círculo
+            points_near_circle = []
+            for point in contour_points:
+                x, y = point
+                # Verificar si el punto está dentro del rango cercano al círculo
+                if center_x - max_distance < x < center_x + max_distance and center_y - max_distance < y < center_y + max_distance:
+                    points_near_circle.append(point)
+
+            # Dibujar círculos en los puntos cercanos al círculo
+            for point in points_near_circle:
+                cv2.circle(image, tuple(point), 3, (255, 0, 0), -1)
 
     return image
 
 # Cargar la imagen
-image = cv2.imread('img/Captura de pantalla (164).png')
+image = cv2.imread('img/Captura de pantalla (161).png')
 
 # Definir los rangos de color para los colores que deseas conservar
 selected_color_ranges = [
