@@ -22,52 +22,56 @@ def detect_circles(image):
     edges = cv2.Canny(gray_image, threshold1=50, threshold2=150)
 
     # Detección de círculos
-    circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=60, minRadius=100, maxRadius=200)
+    circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=62, minRadius=100, maxRadius=200)
 
     if circles is not None:
         circles = np.uint16(np.around(circles))
 
-        # Inicializar una lista para almacenar los círculos encontrados
-        all_circles = []
+        # Obtener el índice del círculo con el radio más grande
+        largest_circle_index = np.argmax(circles[0, :, 2])
+        center_x, center_y, radius = circles[0, largest_circle_index]
 
-        for circle in circles[0, :]:
-            center_x, center_y, radius = circle
+        # Crear una copia de la imagen original para dibujar el círculo sin modificar la imagen original
+        result_image = image.copy()
 
-            # Dibujar el círculo encontrado en la copia de la imagen original
-            cv2.circle(image, (center_x, center_y), radius, (0, 255, 0), 2)
+        # Dibujar el círculo más grande encontrado en la copia de la imagen original
+        cv2.circle(result_image, (center_x, center_y), radius, (0, 255, 0), 2)
 
-            # Agregar el círculo a la lista de todos los círculos
-            all_circles.append(circle)
+        # Crear una imagen binaria con los bordes cercanos al círculo
+        binary_image = np.zeros_like(edges)
+        max_distance = int(radius * 1)
+        for y in range(center_y - max_distance, center_y + max_distance):
+            for x in range(center_x - radius, center_x + radius):
+                if edges[y, x] > 0:
+                    binary_image[y, x] = 255
 
-        # Ordenar la lista de todos los círculos por radio (de mayor a menor)
-        all_circles.sort(key=lambda c: c[2], reverse=True)
+        # Encontrar los puntos más cercanos al círculo en el lado derecho e izquierdo
+        closest_points_left = []
+        closest_points_right = []
+        for y in range(center_y - max_distance, center_y + max_distance):
+            for x in range(center_x - radius, center_x):
+                if binary_image[y, x] > 0:
+                    # Verificar si el punto está fuera del círculo
+                    distance_to_center = np.sqrt((x - center_x) ** 2 + (y - center_y) ** 2)
+                    if distance_to_center > radius:
+                        closest_points_left.append((x, y))
+            for x in range(center_x, center_x + radius):
+                if binary_image[y, x] > 0:
+                    # Verificar si el punto está fuera del círculo
+                    distance_to_center = np.sqrt((x - center_x) ** 2 + (y - center_y) ** 2)
+                    if distance_to_center > radius:
+                        closest_points_right.append((x, y))
 
-        if all_circles:
-            # Dibujar el círculo más grande encontrado con un color diferente (por ejemplo, rojo)
-            largest_circle = all_circles[0]
-            center_x, center_y, radius = largest_circle
-            cv2.circle(image, (center_x, center_y), radius, (0, 0, 255), 2)
+        # Dibujar los puntos azules si están lo suficientemente cerca del círculo
+        for closest_point in closest_points_left:
+            cv2.circle(result_image, closest_point, 3, (255, 0, 0), -1)
+        for closest_point in closest_points_right:
+            cv2.circle(result_image, closest_point, 3, (0, 0, 255), -1)
 
-            # Buscar puntos horizontales más cercanos sobre la parte superior del círculo
-            _, binary_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY_INV)
-            contour_points = np.column_stack(np.where(binary_image > 0))
+        return result_image
 
-            # Calcular la distancia máxima permitida para considerar un punto cercano al círculo
-            max_distance = int(radius * 0.8)
-
-            # Encontrar los puntos cercanos al círculo
-            points_near_circle = []
-            for point in contour_points:
-                x, y = point
-                # Verificar si el punto está dentro del rango cercano al círculo
-                if center_x - max_distance < x < center_x + max_distance and center_y - max_distance < y < center_y + max_distance:
-                    points_near_circle.append(point)
-
-            # Dibujar círculos en los puntos cercanos al círculo
-            for point in points_near_circle:
-                cv2.circle(image, tuple(point), 3, (255, 0, 0), -1)
-
-    return image
+    else:
+        return image
 
 # Cargar la imagen
 image = cv2.imread('img/Captura de pantalla (161).png')
