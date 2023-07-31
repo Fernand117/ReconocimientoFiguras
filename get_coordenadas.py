@@ -14,8 +14,43 @@ def keep_selected_colors(image, color_ranges):
     image_with_selected_colors = cv2.bitwise_and(image, image, mask=mask)
     return image_with_selected_colors
 
+def detect_circles(image):
+    # Convertir la imagen a escala de grises
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Aplicar el operador de Canny para detectar los bordes
+    edges = cv2.Canny(gray_image, threshold1=50, threshold2=150)
+
+    # Detección de círculos
+    circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=60, minRadius=100, maxRadius=200)
+
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        
+        # Inicializar variables para el círculo más grande encontrado
+        largest_circle = None
+        largest_radius = 0
+
+        for circle in circles[0, :]:
+            center_x, center_y, radius = circle
+            
+            # Si el radio del círculo actual es más grande que el radio del círculo más grande encontrado hasta ahora
+            if radius > largest_radius:
+                largest_radius = radius
+                largest_circle = circle
+
+            # Dibujar el círculo encontrado en la copia de la imagen original
+            cv2.circle(image, (center_x, center_y), radius, (0, 255, 0), 2)
+
+        if largest_circle is not None:
+            center_x, center_y, radius = largest_circle
+            # Dibujar el círculo más grande encontrado con un color diferente (por ejemplo, rojo)
+            cv2.circle(image, (center_x, center_y), radius, (0, 0, 255), 2)
+
+    return image
+
 # Cargar la imagen
-image = cv2.imread('img/Captura de pantalla (161).png')
+image = cv2.imread('img/Captura de pantalla (164).png')
 
 # Definir los rangos de color para los colores que deseas conservar
 selected_color_ranges = [
@@ -118,6 +153,8 @@ if punto_inf_izq is not None and punto_inf_der is not None:
     cv2.circle(image_with_selected_colors, punto_inf_izq, 1, (0, 255, 0), 2)
     #cv2.putText(image_with_selected_colors, f"{punto_inf_der}", punto_inf_der, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
     cv2.circle(image_with_selected_colors, punto_inf_der, 1, (0, 255, 0), 2)
+
+image_with_selected_colors = detect_circles(image_with_selected_colors)
 
 window_width = 1080
 window_height = 720
